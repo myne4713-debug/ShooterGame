@@ -1,0 +1,65 @@
+#pragma once
+
+namespace config {
+inline constexpr char kWindowTitle[] = "DHMT - OpenGL";
+inline constexpr int kWindowWidth = 1280;
+inline constexpr int kWindowHeight = 720;
+inline constexpr int kGlMajor = 3;
+inline constexpr int kGlMinor = 3;
+inline constexpr int kSwapInterval = 1;
+inline constexpr float kClearRed = 0.58f;
+inline constexpr float kClearGreen = 0.73f;
+inline constexpr float kClearBlue = 0.80f;
+inline constexpr double kFadeSeconds = 0.4;
+inline constexpr unsigned int kSlices = 32;
+inline constexpr unsigned int kStacks = 16;
+inline constexpr float kVerticalFovDegrees = 75.0f;
+inline constexpr float kNearPlane = 0.1f;
+inline constexpr float kFarPlane = 80.0f;
+inline constexpr float kStartYaw = -90.0f, kStartPitch = -6.0f;
+inline constexpr float kPitchLimit = 89.0f;
+inline constexpr float kMouseDegreesPerPixel = 0.10f;
+inline constexpr float kEyeHeight = 1.65f, kStartZ = 9.0f;
+inline constexpr float kWalkSpeed = 4.0f, kRunSpeed = 7.0f;
+inline constexpr float kJumpSpeed = 4.8f, kGravity = 12.0f;
+inline constexpr float kBodyHalfWidth = 0.32f;
+inline constexpr float kBodyHeight = 1.80f;
+inline constexpr double kPhysicsStep = 1.0 / 60.0;
+inline constexpr float kLowCrateHeight = 0.70f;
+inline constexpr float kArenaSize = 28.0f, kWallHeight = 4.0f, kWallThickness = 0.6f;
+inline constexpr float kFloorTileSize = 2.0f;
+inline constexpr float kFogStart = 9.0f, kFogEnd = 39.0f;
+inline constexpr double kMaxFrameSeconds = 0.1;
+inline constexpr float kFloorShininess = 20.0f, kWallShininess = 12.0f;
+inline constexpr float kWoodShininess = 24.0f, kMetalShininess = 80.0f;
+inline constexpr int kTextureSize = 128, kSkyFaceSize = 64;
+inline constexpr float kAnisotropyLimit = 8.0f;
+inline constexpr float kFlashSeconds = 0.050f;
+inline constexpr float kFlashForward = 0.60f, kFlashRight = 0.22f, kFlashDown = 0.18f;
+inline constexpr float kSpotInnerDegrees = 12.0f, kSpotOuterDegrees = 20.0f;
+inline constexpr int kMagazineSize = 12, kStartingReserve = 42;
+inline constexpr int kShotDamage = 25, kPracticeHealth = 100, kPlayerHealth = 100;
+inline constexpr double kShotInterval = 0.15, kReloadSeconds = 1.20;
+inline constexpr float kSpreadDegrees = 0.6f, kKickDegrees = 0.7f;
+inline constexpr float kShotRange = 60.0f, kTracerSeconds = 0.075f;
+inline constexpr float kDecalSize = 0.14f, kDecalOffset = 0.002f;
+inline constexpr int kMaxDecals = 48;
+inline constexpr float kHitMarkerSeconds = 0.18f, kBobFrequency = 4.0f;
+inline constexpr float kEnemyRadius = 0.45f, kAttackRange = 1.65f;
+inline constexpr float kEnemyWakeSeconds = 0.65f, kDeathSeconds = 0.55f;
+inline constexpr float kWaveDelay = 1.8f, kDamageFlashSeconds = 0.35f;
+inline constexpr int kFirstWaveCount = 2, kMaxWaveCount = 8;
+inline constexpr int kRunnerHealth = 50, kGuardHealth = 100;
+inline constexpr float kRunnerSpeed = 2.6f, kGuardSpeed = 1.65f;
+inline constexpr float kRunnerHeight = 1.55f, kGuardHeight = 1.95f;
+inline constexpr int kRunnerDamage = 8, kGuardDamage = 15;
+inline constexpr float kAttackInterval = 1.05f;
+inline constexpr int kRunnerPoints = 100, kGuardPoints = 200;
+inline constexpr float kMinSpawnDistance = 5.0f;
+inline constexpr int kShadowResolution = 1024;
+inline constexpr float kShadowExtent = 22.0f, kSunDistance = 32.0f;
+inline constexpr float kShadowSlopeBias = 2.0f, kShadowDepthUnits = 2.0f;
+inline constexpr int kSparksPerImpact = 18, kMaxSparkBursts = 8;
+inline constexpr float kSparkLifetime = 0.42f;
+inline constexpr int kHudGlyphsPerBatch = 16; // Số phần tử uGlyphs trong hud.vert.
+}
