@@ -41,10 +41,12 @@ target_include_directories(glad PUBLIC third_party/glad/include)
 add_library(stb_image INTERFACE)
 target_include_directories(stb_image INTERFACE third_party/stb)
 
-add_library(shooter_physics STATIC src/physics/AABB.cpp src/world/Level.cpp src/world/Player.cpp src/world/Weapon.cpp
+add_library(shooter_physics STATIC src/physics/AABB.cpp src/world/MapCatalog.cpp
+    src/world/ImageMapGrid.cpp src/world/ImageMapLoader.cpp
+    src/world/Level.cpp src/world/Player.cpp src/world/Weapon.cpp
     src/world/ArenaRoutes.cpp src/world/Enemy.cpp src/world/WaveManager.cpp)
 target_include_directories(shooter_physics PUBLIC src)
-target_link_libraries(shooter_physics PUBLIC glm::glm)
+target_link_libraries(shooter_physics PUBLIC glm::glm PRIVATE stb_image)
 
 add_library(shooter_render STATIC src/core/Window.cpp
     src/gfx/Shader.cpp src/gfx/Mesh.cpp src/gfx/Primitives.cpp
@@ -53,8 +55,11 @@ add_library(shooter_render STATIC src/core/Window.cpp
 target_link_libraries(shooter_render PUBLIC glfw glad shooter_physics PRIVATE stb_image)
 target_compile_definitions(shooter_render PUBLIC GLFW_INCLUDE_NONE ASSET_DIR="assets"
     $<$<CONFIG:Debug>:SHOOTER_DEBUG>)
-add_executable(shooter src/main.cpp src/core/Game.cpp src/core/Input.cpp)
+add_executable(shooter src/main.cpp src/core/Game.cpp src/core/Input.cpp src/core/FileDialog.cpp)
 target_link_libraries(shooter PRIVATE shooter_render)
+if(WIN32)
+    target_link_libraries(shooter PRIVATE comdlg32)
+endif()
 if(MSVC)
     set(shooter_warnings /W4 /utf-8)
 else()
@@ -90,6 +95,10 @@ add_custom_target(shooter_assets
         "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${shooter_output_dir}/assets"
     VERBATIM)
 add_dependencies(shooter shooter_assets)
+if(BUILD_TESTING)
+    add_dependencies(physics_tests shooter_assets)
+    add_dependencies(wave_tests shooter_assets)
+endif()
 
 # Phép đo dùng đúng renderer của game và cần context đồ họa. Chỉ build khi gọi đích danh.
 if(BUILD_TESTING)

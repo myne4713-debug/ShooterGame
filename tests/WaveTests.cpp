@@ -1,6 +1,8 @@
 #include "world/WaveManager.h"
+#include "world/ImageMapLoader.h"
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <stdexcept>
 
 namespace {
@@ -81,6 +83,92 @@ void testWaveLoop(Level& level) {
     WaveManager fresh(level);
     require(fresh.wave() == 1 && fresh.score() == 0 && fresh.health() == config::kPlayerHealth, "fresh round");
 }
+
+void verifyMapNavigationAndWaveLoop(const MapDefinition& def) {
+    Level level(def);
+    ArenaRoutes routes(level.solids(), level.arenaSize());
+    const glm::vec3 playerGoal = level.playerSpawn() + glm::vec3{0.0f, config::kEyeHeight, 0.0f};
+    const glm::vec3 farGoal = level.spawnPoints()[2] + glm::vec3{0.0f, config::kEyeHeight, 0.0f};
+
+    for (const glm::vec3 goal : {playerGoal, farGoal}) {
+        routes.setGoal(goal);
+        for (std::size_t s : {std::size_t{0}, std::size_t{4}, std::size_t{8}}) {
+            const glm::vec3 start = level.spawnPoints()[s];
+            if (glm::distance(glm::vec2{start.x, start.z}, glm::vec2{goal.x, goal.z}) < 1.0f) continue;
+            Enemy enemy(EnemyType::Guard, start);
+            bool attacked = false;
+            for (int step = 0; step < 3600 && !attacked; ++step) {
+                attacked = enemy.step(kDt, goal, routes.waypoint(enemy.feet()), level.solids()) > 0;
+                const auto body = enemy.bounds();
+                for (const auto& box : level.solids()) {
+                    const bool inside = glm::all(glm::greaterThan(body.max, box.min + 0.0001f))
+                                     && glm::all(glm::lessThan(body.min, box.max - 0.0001f));
+                    require(!inside, "map route crossed solid");
+                }
+            }
+            require(attacked && enemy.state() == EnemyState::Attack,
+                    "enemy could not reach goal on map");
+        }
+    }
+
+    WaveManager waves(level);
+    require(waves.wave() == 1, "map starts at wave 1");
+    require(static_cast<int>(waves.enemies().size()) == config::kFirstWaveCount, "map wave 1 size");
+    int expectedScore = 0;
+    for (const auto& enemy : waves.enemies()) {
+        const auto origin = enemy.feet() + glm::vec3{0.0f, 1.0f, 0.46f};
+        while (enemy.health() > 0) {
+            const auto hit = waves.hitScan(level, origin, {0.0f, 0.0f, -1.0f}, config::kShotDamage);
+            require(hit && hit->movingTarget && hit->damagedTarget, "hit enemy on map");
+        }
+        expectedScore += enemy.points();
+    }
+    require(waves.score() == expectedScore, "map score matches cleared wave");
+    bool spawned = false;
+    for (int step = 0; step < 160 && !spawned; ++step) {
+        spawned = waves.step(kDt, playerGoal, level);
+    }
+    require(spawned && waves.wave() == 2
+            && static_cast<int>(waves.enemies().size()) == config::kFirstWaveCount + 1,
+            "map advances to wave 2");
+}
+
+void testAllMapsNavigationAndWaves() {
+    for (std::size_t i = 0; i < kMapCount; ++i) {
+        verifyMapNavigationAndWaveLoop(mapDefinition(i));
+    }
+}
+
+std::filesystem::path sampleImagePath(const char* fileName) {
+    const auto local = std::filesystem::path("assets") / "maps" / fileName;
+    if (std::filesystem::exists(local)) return local;
+    return std::filesystem::path("..") / "assets" / "maps" / fileName;
+}
+
+void testImageMapsNavigationAndWaves() {
+    std::vector<unsigned char> sketch(64 * 64 * 4, 235);
+    for (int y = 16; y < 48; ++y) {
+        for (int x = 16; x < 48; ++x) {
+            if (x < 24 || x >= 40) {
+                const auto idx = static_cast<std::size_t>(y * 64 + x) * 4;
+                sketch[idx] = sketch[idx + 1] = sketch[idx + 2] = 35;
+            }
+        }
+    }
+    verifyMapNavigationAndWaveLoop(buildMapFromPixels(64, 64, sketch.data(), "sketch", 1).definition);
+
+    std::vector<unsigned char> checker(16 * 16 * 4, 255);
+    for (int y = 0; y < 16; ++y) {
+        for (int x = 0; x < 16; ++x) {
+            const unsigned char v = ((x + y) % 2 == 0) ? 20 : 240;
+            const auto idx = static_cast<std::size_t>(y * 16 + x) * 4;
+            checker[idx] = checker[idx + 1] = checker[idx + 2] = v;
+        }
+    }
+    verifyMapNavigationAndWaveLoop(buildMapFromPixels(16, 16, checker.data(), "checker", 2).definition);
+    verifyMapNavigationAndWaveLoop(loadMapFromImageFile(sampleImagePath("sample_maze.png"), 3).definition);
+    verifyMapNavigationAndWaveLoop(loadMapFromImageFile(sampleImagePath("sample_neon_fort.png"), 4).definition);
+}
 }
 
 int main() {
@@ -89,6 +177,8 @@ int main() {
         testRoutes(level);
         testContact(level);
         testWaveLoop(level);
+        testAllMapsNavigationAndWaves();
+        testImageMapsNavigationAndWaves();
     } catch (const std::exception& error) {
         std::fprintf(stderr, "Wave test failed: %s\n", error.what());
         return 1;

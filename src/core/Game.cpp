@@ -1,5 +1,6 @@
 #include "core/Game.h"
 #include "core/Config.h"
+#include "core/FileDialog.h"
 #include "core/GlCheck.h"
 #include "core/Input.h"
 #include "core/Window.h"
@@ -7,31 +8,79 @@
 #include "gfx/LevelRenderer.h"
 #include "gfx/WeaponRenderer.h"
 #include "ui/HUD.h"
-#include "world/Weapon.h"
+#include "world/ImageMapLoader.h"
 #include "world/Level.h"
 #include "world/Player.h"
 #include "world/WaveManager.h"
+#include "world/Weapon.h"
 
 #include <glad/glad.h>
 #include <algorithm>
+#include <cstdio>
+#include <exception>
 
-void runGame(Window& window) {
+void runGame(Window& window, const std::optional<std::filesystem::path>& initialImage) {
     auto* handle = window.handle();
     LevelRenderer renderer(ASSET_DIR);
     const auto shaders = std::filesystem::path(ASSET_DIR) / "shaders";
     WeaponRenderer effects(shaders);
     HUD hud(shaders);
-    Level level;
+    Input input(handle);
+    Level level(input.selectedMap());
     WaveManager waves(level);
     Weapon weapon;
-    Camera camera;
-    Input input(handle);
-    Player player;
+    Player player(level.playerSpawn());
+    Camera camera(player.eyePosition(), level.playerYaw(), level.playerPitch());
+    std::optional<MapDefinition> customMapDef;
+    HUD::CustomMapView customView;
+    std::uint64_t customRevision = 0;
     double physicsTime = 0.0;
     double previousTime = glfwGetTime();
     double elapsed = 0.0;
     double fpsTime = 0.0;
     int frameCount = 0, fps = 0;
+
+    const auto loadMap = [&](MapId mapId) {
+        level = (mapId == MapId::Custom && customMapDef) ? Level(*customMapDef) : Level(mapId);
+        waves = WaveManager(level);
+        player = Player(level.playerSpawn());
+        camera = Camera(player.eyePosition(), level.playerYaw(), level.playerPitch());
+        weapon = Weapon{};
+        effects.reset();
+        physicsTime = 0.0;
+    };
+
+    const auto tryLoadImageMap = [&](const std::filesystem::path& path) {
+        try {
+            const auto loaded = loadMapFromImageFile(path, ++customRevision);
+            customMapDef = loaded.definition;
+            customView = {
+                true,
+                loaded.definition.name,
+                loaded.definition.subtitle,
+                loaded.definition.arenaSize,
+                "LOADED " + loaded.definition.name + " - "
+                    + std::to_string(loaded.gridWidth) + "X" + std::to_string(loaded.gridHeight),
+                false,
+            };
+            input.setCustomMapAvailable(true);
+            input.selectCustomMap();
+            if (input.screen() != GameScreen::Menu) {
+                input.setScreen(GameScreen::Menu);
+            }
+            input.takeMapChanged();
+            loadMap(MapId::Custom);
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "Image map load error: %s\n", error.what());
+            customView.statusMessage = "CANNOT LOAD IMAGE FILE";
+            customView.statusError = true;
+        }
+    };
+
+    if (initialImage) {
+        tryLoadImageMap(*initialImage);
+    }
+
     while (!glfwWindowShouldClose(handle)) {
         glfwPollEvents();
         if (glfwWindowShouldClose(handle)) {
@@ -41,6 +90,16 @@ void runGame(Window& window) {
             glfwWaitEvents();
             previousTime = glfwGetTime();
             continue;
+        }
+        if (const auto dropped = input.takeDroppedPath()) {
+            tryLoadImageMap(*dropped);
+        }
+        if (input.takeOpenImageRequest()) {
+            const auto picked = openImageFileDialog(std::filesystem::path(ASSET_DIR) / "maps");
+            previousTime = glfwGetTime();
+            if (picked) {
+                tryLoadImageMap(*picked);
+            }
         }
         const double now = glfwGetTime();
         const double frameTime = now - previousTime;
@@ -53,14 +112,10 @@ void runGame(Window& window) {
             fpsTime = 0.0;
         }
         previousTime = now;
-        if (input.takeStart()) {
-            level = Level{};
-            waves = WaveManager(level);
-            player = Player{};
-            camera = Camera{};
-            weapon = Weapon{};
-            effects.reset();
-            physicsTime = 0;
+        const bool start = input.takeStart();
+        const bool mapChanged = input.takeMapChanged();
+        if (start || mapChanged) {
+            loadMap(input.selectedMap());
         }
         if (input.screen() == GameScreen::Playing) {
             camera.look(input.mouseDelta());
@@ -100,8 +155,7 @@ void runGame(Window& window) {
         // Nền sáng dần lúc mở cửa sổ. dt tính bằng giây để thời gian chuyển màu độc lập với FPS.
         elapsed = std::min(elapsed + dt, config::kFadeSeconds);
         const float brightness = static_cast<float>(elapsed / config::kFadeSeconds);
-        const glm::vec3 sky = brightness * glm::vec3{config::kClearRed, config::kClearGreen,
-                                                     config::kClearBlue};
+        const glm::vec3 sky = brightness * level.theme().skyHorizon;
         glClearColor(sky.r, sky.g, sky.b, 1.0f);
         // Xóa màu để đặt nền mới và xóa độ sâu để giá trị từ khung trước
         // không làm mất các fragment ở khung hiện tại khi kiểm tra độ sâu.
@@ -114,7 +168,8 @@ void runGame(Window& window) {
             renderer.draw(level, camera, aspect, input.flashlightOn(), brightness, effects.flashPosition(),
                           waves.enemies(), input.shadowsOn());
             effects.draw(camera, aspect, input.sparksOn());
-            hud.draw(width, height, weapon, waves, effects.hitMarker(), input.screen(), input.showFps() ? fps : -1);
+            hud.draw(width, height, weapon, waves, effects.hitMarker(), input.screen(),
+                     input.showFps() ? fps : -1, input.selectedMap(), &customView);
         }
         GL_CHECK();
         glfwSwapBuffers(handle);

@@ -18,6 +18,7 @@ public:
 private:
     void spawn(glm::vec3 player);
     ArenaRoutes m_routes;
+    std::vector<glm::vec3> m_spawnPoints;
     std::vector<Enemy> m_enemies;
     int m_wave = 0, m_score = 0, m_health = config::kPlayerHealth;
     float m_delay = 0, m_flash = 0;

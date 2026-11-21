@@ -1,5 +1,4 @@
 #include "world/ArenaRoutes.h"
-#include "core/Config.h"
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <limits>
@@ -7,19 +6,31 @@
 namespace {
 constexpr float kMargin = 0.06f;
 constexpr float kInfinity = std::numeric_limits<float>::infinity();
+
+bool insideXZ(glm::vec3 point, const AABB& box) {
+    return point.x >= box.min.x && point.x <= box.max.x
+        && point.z >= box.min.z && point.z <= box.max.z;
+}
 }
 
-ArenaRoutes::ArenaRoutes(const std::vector<AABB>& solids) {
-    const float limit = config::kArenaSize/2 - config::kEnemyRadius;
+ArenaRoutes::ArenaRoutes(const std::vector<AABB>& solids, glm::vec2 arenaSize) {
+    const float limitX = arenaSize.x * 0.5f - config::kEnemyRadius;
+    const float limitZ = arenaSize.y * 0.5f - config::kEnemyRadius;
+    const glm::vec3 margin{config::kEnemyRadius, 0, config::kEnemyRadius};
     for (const AABB& box : solids) {
         if (box.max.y <= 0) continue;
         // Nới vật cản theo bán kính thân để một đoạn thẳng thông thoáng cũng đủ rộng cho địch.
-        const glm::vec3 margin{config::kEnemyRadius, 0, config::kEnemyRadius};
-        const AABB expanded{box.min - margin, box.max + margin};
-        m_obstacles.push_back(expanded);
+        m_obstacles.push_back({box.min - margin, box.max + margin});
+    }
+    for (const AABB& expanded : m_obstacles) {
         for (float x : {expanded.min.x - kMargin, expanded.max.x + kMargin}) {
             for (float z : {expanded.min.z - kMargin, expanded.max.z + kMargin}) {
-                if (std::abs(x) < limit && std::abs(z) < limit) m_corners.push_back({x, 0, z});
+                if (std::abs(x) >= limitX || std::abs(z) >= limitZ) continue;
+                const glm::vec3 corner{x, 0, z};
+                // Bỏ góc nằm lọt trong AABB mở rộng khác (ví dụ bệ nhiều bậc) để tránh đỉnh thừa.
+                const bool occluded = std::any_of(m_obstacles.begin(), m_obstacles.end(),
+                                                  [&](const AABB& obs) { return insideXZ(corner, obs); });
+                if (!occluded) m_corners.push_back(corner);
             }
         }
     }
@@ -51,14 +62,19 @@ bool ArenaRoutes::clear(glm::vec3 from, glm::vec3 to) const {
 void ArenaRoutes::setGoal(glm::vec3 feet) {
     feet.y = 0;
     // Khi người chơi đứng trên nắp thùng hoặc sát tường, hướng tới mép gần nhất mà thân địch tới được.
-    for (const auto& box : m_obstacles) {
-        if (feet.x < box.min.x || feet.x > box.max.x || feet.z < box.min.z || feet.z > box.max.z) continue;
-        const float gaps[]{feet.x-box.min.x, box.max.x-feet.x, feet.z-box.min.z, box.max.z-feet.z};
-        const auto face = std::min_element(gaps, gaps+4) - gaps;
-        if (face == 0) feet.x = box.min.x - kMargin;
-        if (face == 1) feet.x = box.max.x + kMargin;
-        if (face == 2) feet.z = box.min.z - kMargin;
-        if (face == 3) feet.z = box.max.z + kMargin;
+    for (int pass = 0; pass < 2; ++pass) {
+        bool adjusted = false;
+        for (const auto& box : m_obstacles) {
+            if (!insideXZ(feet, box)) continue;
+            const float gaps[]{feet.x - box.min.x, box.max.x - feet.x, feet.z - box.min.z, box.max.z - feet.z};
+            const auto face = std::min_element(gaps, gaps + 4) - gaps;
+            if (face == 0) feet.x = box.min.x - kMargin;
+            if (face == 1) feet.x = box.max.x + kMargin;
+            if (face == 2) feet.z = box.min.z - kMargin;
+            if (face == 3) feet.z = box.max.z + kMargin;
+            adjusted = true;
+        }
+        if (!adjusted) break;
     }
     if (m_hasGoal && feet == m_goal) return;
     m_goal = feet;
@@ -79,7 +95,7 @@ glm::vec3 ArenaRoutes::waypoint(glm::vec3 from) const {
     for (std::size_t i = 0; i < m_corners.size(); ++i) {
         const float first = glm::distance(from, m_corners[i]);
         const float total = first + m_toGoal[i];
-        if (first > kMargin/2 && total < best && clear(from, m_corners[i])) {
+        if (first > kMargin / 2 && total < best && clear(from, m_corners[i])) {
             next = m_corners[i];
             best = total;
         }

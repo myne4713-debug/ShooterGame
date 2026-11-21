@@ -1,10 +1,13 @@
 #pragma once
+#include "core/Config.h"
 #include "physics/AABB.h"
+#include <glm/vec2.hpp>
 
 // Các góc của vật cản là những điểm rẽ trên mặt sàn.
 class ArenaRoutes {
 public:
-    explicit ArenaRoutes(const std::vector<AABB>& solids);
+    explicit ArenaRoutes(const std::vector<AABB>& solids,
+                         glm::vec2 arenaSize = {config::kArenaSize, config::kArenaSize});
     void setGoal(glm::vec3 feet);
     glm::vec3 waypoint(glm::vec3 from) const;
 

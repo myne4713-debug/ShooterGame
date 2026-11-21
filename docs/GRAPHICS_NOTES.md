@@ -88,3 +88,14 @@ Khi trình bày một khung hình, bắt đầu ở `runGame` trong `src/core/Ga
 | --- | --- | --- |
 | Chữ HUD theo nhóm | Mỗi instance dùng chung quad, atlas, màu và kích thước. Chỉ số instance chọn mã glyph và dịch quad theo bước sáu pixel của font. Chuỗi dài tiếp tục ở gốc của nhóm kế tiếp. Giữ thứ tự vẽ giữa các lớp giúp blending cho cùng kết quả. | `src/ui/HUD.cpp` · `text`, `drawQuads`, `assets/shaders/hud.vert`, `hud.frag` · `main` |
 | Đo chi phí kết xuất | Vẽ lại cùng khung với từng tổ hợp bóng và hạt. Đồng bộ bằng `glFinish` trước khi dừng đồng hồ để phép đo bao gồm thời gian GPU hoàn tất lệnh. | `tests/RenderBenchmark.cpp` · `runBenchmark` |
+
+## Đa bản đồ và giao diện chọn map
+
+| Tính năng | Kiến thức đồ họa | File / hàm cài đặt |
+| --- | --- | --- |
+| Cubemap bầu trời theo bản đồ | Tạo sẵn cubemap 6 mặt cho từng map bằng cách nội suy mượt theo độ cao hướng lấy mẫu giữa màu chân trời và thiên đỉnh. | `src/gfx/Texture.cpp` · `makeSky`, `src/gfx/LevelRenderer.cpp` · `LevelRenderer`, `draw` |
+| Chiếu sáng và sương mù theo chủ đề | Cập nhật hướng/màu ánh sáng định hướng, ba đèn điểm, màu sàn và khoảng sương mù tuyến tính-mượt mỗi khi chuyển bản đồ. | `src/world/MapCatalog.cpp`, `src/gfx/LevelRenderer.cpp` · `applyMapLighting`, `draw` |
+| Frustum shadow map thích ứng | Tính lại vị trí camera mặt trời và vùng chiếu trực giao (`glm::ortho`) theo `shadowExtent`, `wallHeight` và `sunDirection` của từng đấu trường. | `src/gfx/LevelRenderer.cpp` · `applyMapLighting` |
+| Menu chọn map và hit-test trực giao | Trộn panel menu bán trong suốt lên cảnh 3D xem trước; nghịch đảo hệ số tỉ lệ của phép chiếu trực giao từ pixel framebuffer về tọa độ ảo HUD để bắt sự kiện click. | `src/ui/HUD.cpp` · `virtualViewport`, `drawMenu`, `hitTestMenu`, `src/core/Input.cpp` · `onMouseButton` |
+| Giảm mẫu và phân ngưỡng Otsu cho ảnh bản đồ | Lọc hộp (box filter) ảnh đầu vào về lưới 2×2 đơn vị giữ tỉ lệ khung hình; tối đa hóa phương sai giữa hai lớp sáng/tối (Otsu) để tách vật cản 3 tầng cao và lấy bảng màu vật liệu từ ảnh. | `src/world/ImageMapLoader.cpp` · `buildMapFromPixels`, `src/world/ImageMapGrid.cpp` · `assignTiersFromImage` |
+| Gộp khối AABB và chủ đề ánh sáng từ ảnh | Gộp các ô liền kề thành hình chữ nhật tối đa 28 hộp cho vẽ và va chạm; lấy màu vùng trên/giữa và ô trống tạo cubemap bầu trời, ánh sáng mặt trời/đèn điểm động theo `revision`. | `src/world/ImageMapGrid.cpp` · `mergeRectangles`, `src/world/ImageMapLoader.cpp`, `src/gfx/LevelRenderer.cpp` · `draw` |

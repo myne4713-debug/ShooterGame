@@ -1,7 +1,6 @@
 #include "gfx/Texture.h"
 #include "core/Config.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -117,11 +116,9 @@ Texture Texture::makeMask(int width, int height, const std::vector<unsigned char
     return texture;
 }
 
-Texture Texture::makeSky() {
+Texture Texture::makeSky(glm::vec3 horizon, glm::vec3 zenith) {
     Texture sky(GL_TEXTURE_CUBE_MAP);
     const int size = config::kSkyFaceSize;
-    const glm::vec3 horizon{config::kClearRed, config::kClearGreen, config::kClearBlue};
-    const glm::vec3 zenith{0.16f, 0.39f, 0.67f};
     std::vector<unsigned char> pixels(size * size * 4);
     for (int face = 0; face < 6; ++face) {
         for (int y = 0; y < size; ++y) {

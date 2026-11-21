@@ -128,3 +128,25 @@ Mẫu Release của `render_benchmark` vẽ ở 1280×720, với đèn pin, mộ
 | Bật | Bật | 2,574 ms | 3,811 ms |
 
 Các số đo thuộc một lần chạy trên máy trên. Có thể lặp lại bằng lệnh trong [README](../README.md#đo-thời-gian-vẽ-ở-wave-đông). Linux và GPU khác chưa được chạy thử trong đợt nghiệm thu này.
+
+## Kiểm thử tính năng chọn map và đa bản đồ
+
+Ngày 21/11/2026 trên Windows, MinGW-w64 GCC 16.2.0, Intel UHD Graphics 770, OpenGL 3.3.0 (driver 32.0.101.7026).
+
+| Kiểm tra | Kết quả |
+| --- | --- |
+| Build sạch Release và Debug | Cả hai cấu hình biên dịch với `-Wall -Wextra`, 0 cảnh báo. |
+| CTest Release và Debug | Đạt 3/3 bộ kiểm thử (`physics`, `combat`, `waves`) ở cả hai cấu hình, bao gồm `testAllMapsGeometry` (kiểm tra kích thước, điểm xuất phát, sinh địch không chồng khối và nhảy 2 bậc ở `Warehouse`) và `testAllMapsNavigationAndWaves` (dẫn đường tới đích và chuyển đợt trên cả 4 map). |
+| Kết xuất 4 bản đồ & hit-test | Đã dựng và vẽ cả 4 bản đồ (`ARENA`, `WAREHOUSE`, `CITADEL`, `LABYRINTH`) qua đủ 4 trạng thái (`Menu`, `Playing`, `Paused`, `GameOver`) với kiểm tra `glGetError() == GL_NO_ERROR`, và kiểm tra `HUD::hitTestMenu` cho cả 4 thẻ map cùng nút Play tại 1280×720 và 882×553. |
+| `render_benchmark` Release | Chạy thành công ở 1280×720 (wave 7, 8 robot): `F6=0 F7=0` trung vị 2,688 ms; `F6=0 F7=1` trung vị 11,232 ms; `F6=1 F7=0` trung vị 5,000 ms; `F6=1 F7=1` trung vị 6,142 ms. |
+
+## Kiểm thử tính năng tạo map từ ảnh bất kỳ (Image-to-Map)
+
+Ngày 21/11/2026 trên Windows, MinGW-w64 GCC 16.2.0, Intel UHD Graphics 770, OpenGL 3.3.0 (driver 32.0.101.7026).
+
+| Kiểm tra | Kết quả |
+| --- | --- |
+| Build sạch Release và Debug | Cả hai cấu hình biên dịch với `-Wall -Wextra`, 0 cảnh báo (bao gồm `ImageMapGrid`, `ImageMapLoader`, `FileDialog` và liên kết `comdlg32`). |
+| CTest Release và Debug | Đạt 3/3 bộ (`physics`, `combat`, `waves`), gồm `testImageMapBuilder` và `testImageMapsNavigationAndWaves` kiểm thử ảnh nền sáng, ảnh nền tối, gradient 16:9, ảnh đồng màu trắng, bàn cờ nhiễu `16×16` và hai file `assets/maps/sample_maze.png`, `assets/maps/sample_neon_fort.png`. |
+| Kết xuất OpenGL ảnh mẫu & hit-test | Dựng và vẽ liên tiếp `sample_maze.png` (rev 1: `13×13`, 26 khối) và chuyển sang `sample_neon_fort.png` (rev 2: `16×12`, 15 khối) qua đủ 4 trạng thái với `glGetError() == GL_NO_ERROR`; kiểm tra `HUD::hitTestMenu` khớp cả 5 thẻ map và 2 nút `LOAD IMAGE`, `PLAY` ở `1280×720` và `882×553`. |
+| `render_benchmark` Release | Chạy ổn định ở `1280×720` (wave 7, 8 robot): `F6=0 F7=0` 2,886 ms; `F6=0 F7=1` 2,203 ms; `F6=1 F7=0` 2,509 ms; `F6=1 F7=1` 2,585 ms. |

@@ -5,6 +5,7 @@
 
 class Player {
 public:
+    explicit Player(glm::vec3 startFeet = {0, 0, config::kStartZ}) : m_feet(startFeet) {}
     // Một bước vật lý cố định. Vận tốc ngang tính theo đơn vị thế giới/giây.
     void step(glm::vec3 horizontalVelocity, bool jumpPressed, const std::vector<AABB>& solids);
     glm::vec3 eyePosition() const;

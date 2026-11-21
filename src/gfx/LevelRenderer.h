@@ -4,7 +4,11 @@
 #include "gfx/Shader.h"
 #include "gfx/ShadowMap.h"
 #include "gfx/Texture.h"
+#include "world/MapCatalog.h"
 #include <array>
+#include <cstdint>
+#include <optional>
+#include <utility>
 #include <vector>
 
 class Camera;
@@ -18,6 +22,7 @@ public:
               const glm::vec3* flashPosition, const std::vector<Enemy>& enemies, bool shadows);
 
 private:
+    void applyMapLighting(const Level& level);
     void drawShadowMap(const Level& level, const std::vector<Enemy>& enemies);
     void drawEnemies(const std::vector<Enemy>& enemies, const glm::mat4& view, bool depthOnly);
     void drawSurface(const Mesh& mesh, const Material& material, glm::vec3 center, glm::vec3 size);
@@ -29,5 +34,8 @@ private:
     Mesh m_floor;
     Mesh m_cylinder, m_quad;
     std::array<Texture, 4> m_textures;
-    Texture m_sky;
+    std::vector<Texture> m_skies;
+    std::optional<Texture> m_customSky;
+    std::uint64_t m_customSkyRevision = 0;
+    std::optional<std::pair<MapId, std::uint64_t>> m_appliedKey;
 };

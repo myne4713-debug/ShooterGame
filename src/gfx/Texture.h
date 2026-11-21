@@ -1,14 +1,18 @@
 #pragma once
 
+#include "core/Config.h"
 #include "gfx/Material.h"
 #include <glad/glad.h>
+#include <glm/vec3.hpp>
 #include <filesystem>
 #include <vector>
 
 class Texture {
 public:
     Texture(const std::filesystem::path& path, Surface fallback);
-    static Texture makeSky();
+    static Texture makeSky(
+        glm::vec3 horizon = {config::kClearRed, config::kClearGreen, config::kClearBlue},
+        glm::vec3 zenith = {0.16f, 0.39f, 0.67f});
     static Texture makeMask(int width, int height, const std::vector<unsigned char>& pixels);
     ~Texture();
     Texture(const Texture&) = delete;

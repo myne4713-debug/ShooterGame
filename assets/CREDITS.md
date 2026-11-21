@@ -21,6 +21,8 @@ Màu nền do dự án chọn và tạo trực tiếp bằng OpenGL. Milestone 1
 
 Ở Milestone 8, ứng dụng tạo texture độ sâu từ hình học hiện tại của đấu trường. Tia lửa dùng quad của nhóm, quỹ đạo và mặt nạ sáng được tính trong shader `sparks`. Hai hiệu ứng chạy bằng dữ liệu sinh lúc vẽ và không cần bổ sung ảnh hoặc model.
 
+Ở phần mở rộng đa bản đồ và tạo map từ ảnh, hai tệp PNG mẫu trong `assets/maps/` (`sample_maze.png` 128×128 và `sample_neon_fort.png` 128×96) được tự sinh bằng script Python chuẩn để làm ảnh đầu vào mẫu không phụ thuộc bản quyền ngoài.
+
 | Thư viện | Phiên bản và giấy phép | Nguồn |
 | --- | --- | --- |
 | GLFW | 3.4, zlib/libpng | [glfw/glfw](https://github.com/glfw/glfw/tree/3.4) |

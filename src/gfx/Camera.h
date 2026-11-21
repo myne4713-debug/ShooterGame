@@ -5,6 +5,9 @@
 
 class Camera {
 public:
+    Camera() = default;
+    Camera(glm::vec3 position, float yaw, float pitch = config::kStartPitch)
+        : m_position(position), m_yaw(yaw), m_pitch(pitch) {}
     void look(glm::vec2 mouseDelta);
     void applyRecoil(float degrees);
     glm::vec3 groundDirection(glm::vec2 strafeForward) const;
